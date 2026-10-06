@@ -4,7 +4,7 @@ import handler from '../api/notes.js';
 import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 const response = () => ({ headers: {}, setHeader(k,v) { this.headers[k]=v; }, status(s) { this.code=s; return this; }, json(body) { this.body=body; return this; } });
 test('server rejects methods and hides configuration failures', async () => {
-  const res=response(); await handler({method:'POST'},res); assert.equal(res.code,405);
+  const res=response(); await handler({method:'PATCH'},res); assert.equal(res.code,405);
   const old=process.env.SUPABASE_SECRET_KEY;
   delete process.env.SUPABASE_SECRET_KEY;
   try { const missing=response(); await handler({method:'GET'},missing); assert.equal(missing.code,401); assert.deepEqual(Object.keys(missing.body),['error']); }

@@ -1,3 +1,17 @@
+# BYTE BACK · 3단계 제작 3
+
+로그인한 사용자가 메모 추가·수정·삭제 화면을 사용할 수 있습니다. 서버는 기존 검증 도우미로 로그인 여부를 확인하고 새 메모의 owner_id를 검증된 사용자 ID로 저장합니다. 요청 본문의 owner_id/userId/role은 저장 신원으로 사용하지 않습니다.
+
+GET /api/notes는 로그인 사용자 소유 메모의 배열을 반환합니다. POST /api/notes는 {id?,title,body}를 받아 {id}와 HTTP 201을 반환하며 ID 생략 시 서버가 UUID를 생성합니다. GET /api/notes/:id는 {id,title,body}, PUT /api/notes/:id는 {title,body}로 수정하고 동일 형식 반환, DELETE /api/notes/:id는 HTTP 204, 삭제 후 GET은 404입니다. 실제 메서드·경로를 allowedRoutes에 기록했습니다. 모든 경로는 무로그인 시 401이며 자료를 반환하지 않습니다.
+
+요청한 대로 한 건 GET·PUT·DELETE는 소유자 조건 없이 ID만 검사합니다. 따라서 B가 A의 ID를 알면 읽기·수정·삭제할 수 있는 허점이 남습니다. 실제 B 계정 교차 접근 시험은 미실행이며 4단계에서 기록·차단합니다.
+
+DB 마이그레이션 local-only/03-notes-crud.sql 실행 완료: 기존 메모 4건을 보존하면서 id를 UUID, content를 body로 변경하고 서버 역할에 CRUD 권한을 부여했습니다. RLS와 공개 역할 권한 제한은 유지했습니다. 기존 4건은 owner_id가 null인 채 보관되므로 사용자 목록에 보이지 않습니다. 새 메모부터 로그인한 계정에 연결됩니다. 실제 학생 자료 대신 가상 메모만 사용합니다.
+
+실행: npm run build -- --local. 화면에서 A 계정 로그인 → 가상 메모 추가 → 수정 저장 → 삭제 → 삭제한 ID 조회 404를 확인합니다. 사용자 비밀번호는 직접 입력해야 하며 실제 A 계정의 로그인 CRUD 검증은 아직 미실행입니다.
+
+아래는 이전 제작의 기록입니다.
+
 # BYTE BACK · 3단계 제작 2
 
 현재 자료 API는 src/verify-login.mjs의 createLoginVerifier를 사용합니다. 이 도우미 파일은 수정하지 않았습니다. 토큰 없음·검증 실패는 HTTP 401이며 메모가 없는 오류 응답을 반환합니다. 요청의 userId·role은 신원 근거로 사용하지 않습니다. Supabase 공식 SDK로 얻은 access token을 Authorization 헤더로 보내며 로그아웃하면 화면 자료도 즉시 비웁니다.

@@ -19,6 +19,10 @@
     .auth { margin: 24px 0; padding: 20px; border: 1px solid #51667c; border-radius: 14px; background: #1a2a3d; }
     .auth h2 { margin-top: 0; }
     .auth label { display: block; margin: 14px 0 6px; }
+    .auth textarea { box-sizing: border-box; width: 100%; padding: 12px; background: #101a28; color: #ecf4ff; border: 1px solid #71869b; border-radius: 8px; font: inherit; }
+    li button { margin: 12px 8px 0 0; padding: 8px 14px; cursor: pointer; }
+    li span { white-space: pre-wrap; }
+    [hidden] { display: none !important; }
     .auth input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #71869b; border-radius: 8px; background: #101a28; color: #ecf4ff; font: inherit; }
     .auth button { margin-top: 16px; padding: 11px 20px; border: 0; border-radius: 8px; background: #8ad8df; color: #101a28; font: inherit; cursor: pointer; }
     .auth button:disabled { opacity: .6; cursor: wait; }
@@ -44,6 +48,16 @@
       </form>
       <button id="logout-button" type="button" hidden>로그아웃</button>
       <p id="auth-message" role="alert" aria-live="polite"></p>
+    </section>
+    <section id="note-editor" class="auth" hidden aria-labelledby="note-editor-heading">
+      <h2 id="note-editor-heading">가상 메모 추가</h2>
+      <form id="note-form">
+        <label for="note-title">제목</label><input id="note-title" maxlength="200" required>
+        <label for="note-body">본문</label><textarea id="note-body" maxlength="10000" required rows="5"></textarea>
+        <button id="note-save" type="submit">추가</button>
+        <button id="note-cancel" type="button" hidden>수정 취소</button>
+      </form>
+      <p id="note-message" role="status" aria-live="polite"></p>
     </section>
     <ul id="notes" aria-live="polite"><li>로그인하면 자료를 볼 수 있습니다.</li></ul>
   </main>
