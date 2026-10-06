@@ -15,7 +15,7 @@ export async function runAttackChecks(config) {
       ['anonymous_delete', '/api/notes/11111111-1111-4111-8111-111111111111', '무로그인 삭제 HTTP 401·JSON 오류·자료 없음', 'DELETE'],
       ['invalid_token', '/api/notes', '잘못된 토큰 HTTP 401·JSON 오류·자료 없음', 'GET', true],
     ] : []),
-    ...(config.step >= 4 ? [['anon_data_api', 'https://yptfuysalmiaimmlvfrk.supabase.co/rest/v1/learning_notes?select=id&limit=1', '공개 키만 사용한 직접 Data API 읽기 거부·자료 없음']] : []),
+    ...(config.step >= 4 ? [['anon_data_api', (config.originalApiUrl || 'https://yptfuysalmiaimmlvfrk.supabase.co/rest/v1/learning_notes') + '?select=id&limit=1', '공개 키만 사용한 직접 Data API 읽기 거부·자료 없음']] : []),
     ['deployment_identity', '/aleph.json', '현재 저장점의 배포 식별 파일'],
     ['security_header', '/', 'X-Content-Type-Options: nosniff'],
   ];
@@ -32,7 +32,7 @@ export async function runAttackChecks(config) {
         });
         if (attackId === 'security_header') observed = 'HTTP ' + response.status + '; nosniff=' + (response.headers.get('x-content-type-options') === 'nosniff');
         else if (attackId === 'deployment_identity') {
-          const data = await response.json(); observed = 'HTTP ' + response.status + '; 단계=' + data.step + '; 저장점 일치=' + (data.commit === config.checkCommit);
+          const data = await response.json(); observed = 'HTTP ' + response.status + '; 단계=' + data.step + '; 저장점 일치=' + (data.commit === config.checkCommit) + '; 허용 경로 수=' + (Array.isArray(data.allowedRoutes) ? data.allowedRoutes.length : 0);
         } else {
           let data; try { data = await response.json(); } catch {}
           if (attackId === 'anon_data_api') observed = 'HTTP ' + response.status + '; JSON 오류=' + (typeof data?.message === 'string' || typeof data?.error === 'string') + '; 행 배열 없음=' + (data != null && !Array.isArray(data));
