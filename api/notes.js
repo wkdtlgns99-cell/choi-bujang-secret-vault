@@ -59,21 +59,24 @@ export default async function handler(req, res) {
         if (error) throw new Error('write_failed');
         return res.status(201).json({ id: noteId });
       }
-      // Ownership enforcement is intentionally deferred to stage 4.
-      const { data, error } = await client.from('learning_notes').update({ title: input.title.trim(), body: input.body })
-        .eq('id', id).select('id,title,body').maybeSingle();
+      if (Object.keys(input).some(field => !['title', 'body'].includes(field))) {
+        return res.status(400).json({ error: '수정은 제목과 본문만 허용합니다. 소유자는 변경할 수 없습니다.' });
+      }
+      // Filter the existing row and bind the new row owner to verified identity.
+      const { data, error } = await client.from('learning_notes').update({ title: input.title.trim(), body: input.body, owner_id: identity.userId })
+        .eq('id', id).eq('owner_id', identity.userId).select('id,title,body').maybeSingle();
       if (error) throw new Error('write_failed');
       if (!data) return res.status(404).json({ error: '메모를 찾을 수 없습니다.' });
       return res.status(200).json(data);
     }
     if (req.method === 'DELETE') {
-      const { data, error } = await client.from('learning_notes').delete().eq('id', id).select('id').maybeSingle();
+      const { data, error } = await client.from('learning_notes').delete().eq('id', id).eq('owner_id', identity.userId).select('id').maybeSingle();
       if (error) throw new Error('delete_failed');
       if (!data) return res.status(404).json({ error: '메모를 찾을 수 없습니다.' });
       return res.status(204).end();
     }
     if (id) {
-      const { data, error } = await client.from('learning_notes').select('id,title,body').eq('id', id).maybeSingle();
+      const { data, error } = await client.from('learning_notes').select('id,title,body').eq('id', id).eq('owner_id', identity.userId).maybeSingle();
       if (error) throw new Error('read_failed');
       if (!data) return res.status(404).json({ error: '메모를 찾을 수 없습니다.' });
       return res.status(200).json(data);

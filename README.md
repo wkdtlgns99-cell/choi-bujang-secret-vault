@@ -1,3 +1,13 @@
+# BYTE BACK · 4단계 제작 2（API 소유자 검사）
+
+검증된 사용자 ID와 owner_id를 모든 조회·수정·삭제 쿼리에서 비교합니다. 타인 메모와 없는 메모는 모두 404 JSON 오류로 기본 거부합니다. 추가는 검증된 ID로 소유자를 저장합니다. 수정은 {title,body}만 허용하고 owner_id 등 추가 필드는 400으로 거부합니다. 기존 행은 본인 소유 조건으로 선택하고 새 행의 owner_id도 같은 검증 ID로 고정합니다. URL과 본문의 소유자 값은 신원 근거로 사용하지 않습니다.
+
+allowedRoutes의 실제 GET·POST·PUT·DELETE 메서드와 경로는 기존 CRUD와 동일하여 대조 후 유지했습니다. 한 건 응답은 {id,title,body}입니다. DB 권한·RLS SQL은 이번 제작에서 변경하거나 실행하지 않았습니다. 단계 전체 저장점 전이므로 배포 설정의 step은 이전 완료 단계 3을 유지합니다.
+
+실행: node --experimental-test-module-mocks --test test/stage3-crud.test.mjs. 정상 결과는 A/B 각각 본인 CRUD 성공이며 상대 메모 GET·PUT·DELETE는 404, 소유자 변경 필드를 포함한 PUT은 400입니다. 모의 계정·DB 시험은 실제 A/B 계정 시험과 구분합니다. 실제 계정의 교차 접근 검증 및 이전 소유자 연결 SQL 적용은 아직 확인하지 못했습니다.
+
+아래는 이전 3단계의 기록이며 당시 타인 접근 허점 설명은 이번 API에서 차단됐습니다. DB 정책의 4단계 변경은 다음 요청으로 남아 있습니다.
+
 # BYTE BACK · 3단계 저장점
 
 Supabase 공식 SDK로 이메일·비밀번호 로그인과 현재 세션 로그아웃을 붙였습니다. 서버는 기존 src/verify-login.mjs의 createLoginVerifier로 토큰을 검사하며 이 도우미는 수정하지 않았습니다. 토큰이 없거나 검증에 실패하면 자료 없이 HTTP 401 JSON 오류를 반환합니다. 요청의 userId·role·owner_id는 신원 근거로 사용하지 않습니다.

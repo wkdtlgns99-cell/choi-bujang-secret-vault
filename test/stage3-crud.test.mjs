@@ -8,7 +8,7 @@ const invoke=async (method,url,body,authorization) => {
  const res={headers:{}, setHeader(k,v){this.headers[k]=v;},status(s){this.code=s;return this;},json(v){this.body=v;return this;},end(){return this;}};
  await handler({method,url,body,headers:{authorization}},res);return res;
 };
-test('CRUD contract, verified owner, own list and stage-four ownership gap',async()=>{
+test('CRUD contract, verified owner, own CRUD and cross-owner denial',async()=>{
  const previous=globalThis.fetch;
  const oldUrl=process.env.SUPABASE_URL,oldKey=process.env.SUPABASE_SECRET_KEY;
  process.env.SUPABASE_URL='https://yptfuysalmiaimmlvfrk.supabase.co';process.env.SUPABASE_SECRET_KEY='test-only-not-a-real-key';
@@ -16,13 +16,16 @@ test('CRUD contract, verified owner, own list and stage-four ownership gap',asyn
  globalThis.fetch=async(input,init)=>{
    reads++;const url=new URL(input);const method=init.method || 'GET';
    const id=url.searchParams.get('id')?.replace('eq.','');
+   const owner=url.searchParams.get('owner_id')?.replace('eq.','');
+   const ownedRow=rows.get(id);
+   const selected=ownedRow && (!owner || ownedRow.owner_id===owner) ? ownedRow : null;
    let data;
    if(method==='POST'){
      const row=JSON.parse(init.body);if(rows.has(row.id))return new Response(JSON.stringify({code:'23505'}),{status:409,headers:{'content-type':'application/json'}});
      rows.set(row.id,row);return new Response(null,{status:201});
    }
-   if(method==='PATCH'){const row=rows.get(id);if(row)Object.assign(row,JSON.parse(init.body));data=row?{id:row.id,title:row.title,body:row.body}:null;}
-   else if(method==='DELETE'){data=rows.has(id)?{id}:null;rows.delete(id);}
+   if(method==='PATCH'){const row=selected;if(row)Object.assign(row,JSON.parse(init.body));data=row?{id:row.id,title:row.title,body:row.body}:null;}
+   else if(method==='DELETE'){data=selected?{id}:null;if(selected)rows.delete(id);}
    else {const owner=url.searchParams.get('owner_id')?.replace('eq.','');data=[...rows.values()].filter(r=>(!id||r.id===id)&&(!owner||r.owner_id===owner)).map(({id,title,body})=>({id,title,body}));}
    return new Response(JSON.stringify(data),{headers:{'content-type':'application/json'}});
  };
@@ -37,8 +40,25 @@ test('CRUD contract, verified owner, own list and stage-four ownership gap',asyn
    const one=await invoke('GET',path,undefined,'Bearer test-a');assert.deepEqual(one.body,{id:created.body.id,title:'sample',body:'fictional'});
    assert.equal((await invoke('GET','/api/notes',undefined,'Bearer test-a')).body.length,1);
    assert.deepEqual((await invoke('GET','/api/notes',undefined,'Bearer test-b')).body,[]);
-   const modified=await invoke('PUT',path,{title:'changed',body:'fictional changed',owner_id:b},'Bearer test-b');assert.equal(modified.code,200);assert.equal(rows.get(created.body.id).owner_id,a);
+   assert.equal((await invoke('GET',path+'?owner_id='+a,undefined,'Bearer test-b')).code,404);
+   assert.equal((await invoke('PUT',path,{title:'changed',body:'fictional changed'},'Bearer test-b')).code,404);
+   assert.equal((await invoke('DELETE',path,undefined,'Bearer test-b')).code,404);
+   assert.equal(rows.get(created.body.id).title,'sample');
+   assert.equal((await invoke('PUT',path,{title:'changed',body:'fictional changed',owner_id:b},'Bearer test-a')).code,400);
+   assert.equal(rows.get(created.body.id).owner_id,a);
+   const modified=await invoke('PUT',path,{title:'changed',body:'fictional changed'},'Bearer test-a');assert.equal(modified.code,200);
+   assert.deepEqual(Object.keys(modified.body).sort(),['body','id','title']);
    assert.equal((await invoke('GET',path,undefined,'Bearer test-a')).body.title,'changed');
+   const bCreated=await invoke('POST','/api/notes',{title:'B sample',body:'fictional'},'Bearer test-b');
+   const bPath='/api/notes/'+bCreated.body.id;
+   assert.equal(rows.get(bCreated.body.id).owner_id,b);
+   assert.equal((await invoke('GET',bPath,undefined,'Bearer test-b')).code,200);
+   assert.equal((await invoke('GET',bPath,undefined,'Bearer test-a')).code,404);
+   assert.equal((await invoke('PUT',bPath,{title:'changed',body:'fictional'},'Bearer test-b')).code,200);
+   assert.equal((await invoke('PUT',bPath,{title:'changed',body:'fictional'},'Bearer test-a')).code,404);
+   assert.equal((await invoke('DELETE',bPath,undefined,'Bearer test-a')).code,404);
+   assert.equal((await invoke('DELETE',bPath,undefined,'Bearer test-b')).code,204);
+   assert.equal((await invoke('GET',bPath,undefined,'Bearer test-b')).code,404);
    assert.equal((await invoke('DELETE',path,undefined,'Bearer test-a')).code,204);
    assert.equal((await invoke('GET',path,undefined,'Bearer test-a')).code,404);
    assert.equal((await invoke('POST','/api/notes',{id:a,title:'sample',body:'fictional'},'Bearer test-a')).code,201);
