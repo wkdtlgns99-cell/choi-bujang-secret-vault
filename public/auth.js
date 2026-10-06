@@ -6,6 +6,47 @@ const message = document.querySelector('#auth-message');
 const passwordInput = document.querySelector('#login-password');
 let busy = false;
 let signedIn = false;
+const list = document.querySelector('#notes');
+let lastToken;
+let notesRequest;
+let notesVersion = 0;
+function showNoteMessage(text) {
+  const item = document.createElement('li');
+  item.textContent = text;
+  list.replaceChildren(item);
+}
+async function refreshNotes(session) {
+  const token = session?.access_token;
+  if (token === lastToken && token) return;
+  lastToken = token;
+  const version = ++notesVersion;
+  notesRequest?.abort();
+  if (!token) { showNoteMessage('로그인하면 자료를 볼 수 있습니다.'); return; }
+  notesRequest = new AbortController();
+  showNoteMessage('자료를 불러오는 중입니다.');
+  try {
+    const response = await fetch('/api/notes', {
+      cache: 'no-store', headers: { Authorization: 'Bearer ' + token }, signal: notesRequest.signal,
+    });
+    if (version !== notesVersion) return;
+    if (response.status === 401) throw new Error('로그인 인증이 만료되었거나 유효하지 않습니다. 다시 로그인해 주세요.');
+    if (!response.ok) throw new Error('자료를 읽을 수 없습니다. 잠시 후 다시 시도해 주세요.');
+    const data = await response.json();
+    if (version !== notesVersion) return;
+    if (!Array.isArray(data.notes)) throw new Error('자료 형식이 맞지 않습니다.');
+    list.replaceChildren(...data.notes.map(note => {
+      const item = document.createElement('li');
+      const title = document.createElement('strong');
+      const content = document.createElement('span');
+      title.textContent = note.title; content.textContent = note.content;
+      item.append(title, content); return item;
+    }));
+  } catch (error) {
+    if (version !== notesVersion || error.name === 'AbortError') return;
+    lastToken = undefined;
+    showNoteMessage(error.message);
+  }
+}
 function render(session) {
   signedIn = Boolean(session?.user);
   form.hidden = signedIn;
@@ -13,6 +54,7 @@ function render(session) {
   status.textContent = signedIn ? '로그인됨: ' + (session.user.email || '사용자') : '로그아웃 상태입니다.';
   loginButton.disabled = busy;
   logoutButton.disabled = busy;
+  void refreshNotes(session);
 }
 function showFailure(error) {
   const reasons = {
@@ -50,7 +92,7 @@ try {
       });
       if (error) showFailure(error); else render(data.session);
     } catch (error) { showFailure(error); }
-    finally { busy = false; loginButton.disabled = false; }
+    finally { busy = false; loginButton.disabled = false; logoutButton.disabled = false; }
   });
   logoutButton.addEventListener('click', async () => {
     if (busy) return;
@@ -59,7 +101,7 @@ try {
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) showFailure(error); else render(null);
     } catch (error) { showFailure(error); }
-    finally { busy = false; logoutButton.disabled = false; }
+    finally { busy = false; loginButton.disabled = false; logoutButton.disabled = false; }
   });
 } catch (error) {
   status.textContent = '로그인을 사용할 수 없습니다.';

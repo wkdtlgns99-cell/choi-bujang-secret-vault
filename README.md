@@ -1,3 +1,13 @@
+# BYTE BACK · 3단계 제작 2
+
+현재 자료 API는 src/verify-login.mjs의 createLoginVerifier를 사용합니다. 이 도우미 파일은 수정하지 않았습니다. 토큰 없음·검증 실패는 HTTP 401이며 메모가 없는 오류 응답을 반환합니다. 요청의 userId·role은 신원 근거로 사용하지 않습니다. Supabase 공식 SDK로 얻은 access token을 Authorization 헤더로 보내며 로그아웃하면 화면 자료도 즉시 비웁니다.
+
+identityProvider는 해당 Supabase 프로젝트의 issuer, authenticated audience, 공개 JWKS URL입니다. 심판 judgeIssuer와 기존 검증 경로를 보존했습니다. 로그인은 신원 확인이며 계정별 접근 제한은 아직 적용하지 않았습니다. 메모 추가·수정·삭제는 다음 제작 요청에서 구현합니다.
+
+확인: npm run build -- --local. 새 시크릿 창에서 /api/notes를 열면 HTTP 401·자료 없음, 첫 화면은 로그인 안내여야 합니다. A 계정으로 직접 로그인하면 네 카드가 표시되고 로그아웃하면 사라져야 합니다. 실제 A 계정 로그인 검증은 비밀번호를 직접 입력한 후 확인해야 합니다.
+
+아래는 이전 단계의 완료 기록입니다. 2단계의 공개 API 설명은 당시 상태이며 현재 상태가 아닙니다.
+
 # BYTE BACK · 2단계 저장점
 
 1단계 배포 저장점(010eb54)에서 자료를 서버 DB로 옮기는 코드를 구현했습니다. 실제 Vercel 배포는 확인했습니다. 학습 DB와 서버 환경변수 설정 후 실제 화면의 카드 네 건을 확인했습니다.

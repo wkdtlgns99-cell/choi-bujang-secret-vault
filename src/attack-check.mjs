@@ -7,7 +7,7 @@ export async function runAttackChecks(config) {
   }
   const checks = [
     ['static_notes', '/data.json', '404 또는 메모 0건'],
-    ['public_api', '/api/notes', '인증 없이 가상 메모 네 건: 2단계의 남은 약점'],
+    ['public_api', '/api/notes', config.step >= 3 ? '토큰 없는 요청 HTTP 401·자료 없음' : '인증 없이 가상 메모 네 건: 2단계의 남은 약점'],
     ['deployment_identity', '/aleph.json', '현재 저장점의 배포 식별 파일'],
     ['security_header', '/', 'X-Content-Type-Options: nosniff'],
   ];
