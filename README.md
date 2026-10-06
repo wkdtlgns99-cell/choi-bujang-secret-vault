@@ -30,3 +30,11 @@ npm run bundle은 학생의 자기 점검이며 심판 판정이 아닙니다. �
 
 실제 연결 저장소: https://github.com/wkdtlgns99-cell/choi-bujang-secret-vault
 실제 배포 주소: https://choi-bujang-secret-vault-woad.vercel.app
+
+## 3단계 제작 1 · 로그인 화면
+
+Supabase 공식 SDK의 signInWithPassword, onAuthStateChange, getSession, signOut으로 이메일·비밀번호 로그인과 현재 세션 로그아웃을 추가했습니다. 로그인하면 계정 상태와 로그아웃 버튼, 로그아웃하면 로그인 폼이 표시됩니다. 실패 이유는 화면에 표시합니다. 비밀번호를 별도로 저장하거나 JWT를 직접 만들지 않습니다. 세션 저장과 갱신은 SDK가 관리합니다. 브라우저에는 공개 Project URL 및 publishable key만 사용합니다.
+
+실행: npm run build -- --local. 배포 화면에서 A 계정 이메일·비밀번호를 직접 입력해 로그인 → 로그인됨 표시 확인 → 로그아웃 → 로그인 폼 표시 확인. 잘못된 비밀번호는 실패 이유가 표시되어야 합니다. A 계정 실제 로그인·로그아웃 검증은 사용자가 직접 입력한 뒤 확인합니다.
+
+이번 제작은 화면만 추가했습니다. 서버 인증 토큰 검증과 메모 추가·수정·삭제는 아직 구현하지 않았습니다. 기존 /api/notes는 계속 공개이며 설정 단계 값은 2단계 완료 상태를 유지합니다.
