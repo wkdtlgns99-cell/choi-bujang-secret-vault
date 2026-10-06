@@ -1,3 +1,17 @@
+# BYTE BACK · 4단계 저장점
+
+API는 검증된 사용자 ID와 메모 owner_id를 비교해 본인 목록·조회·추가·수정·삭제만 허용합니다. 상대 메모는 404, PUT 소유자 변경 필드는 400, 무로그인과 잘못된 토큰은 401 JSON 오류로 거부합니다. 기존 로그인 검증 도우미는 변경하지 않았습니다. 한 건 응답은 {id,title,body}, 수정 본문은 {title,body}를 유지합니다.
+
+aleph.config.json의 step은 4이며 실제 저장소·배포 주소·발급자 정보·메서드별 allowedRoutes를 구현과 대조했습니다. judgeIssuer와 기존 starter.deny 판정기는 보존했습니다. 빌드는 /aleph.json을 4단계로 생성하고 공개 data.json 메모는 0건입니다. nosniff 헤더를 유지했습니다.
+
+실행: npm run build -- --local. 모의 A/B 소유권 시험: node --experimental-test-module-mocks --test test/stage3-crud.test.mjs. A/B 각각 자기 CRUD 성공·상대 GET/PUT/DELETE 404·owner_id 변경 400을 모의 인증과 DB로 확인했습니다. 실제 A/B 계정 시험으로 보고하지 않습니다. 실제 계정 로그인 후 자기 CRUD, B 창의 A 메모 차단 및 5단계 후 화면 재시험은 미실행입니다.
+
+검토용 sql/04-notes-rls.sql은 learning_notes만 대상으로 기존 권한 회수, authenticated CRUD 권한, auth.uid()=owner_id 정책과 적용 전후 role_table_grants·has_table_privilege 조회를 포함합니다. 사용자 검토·실행용이며 실제 적용은 확인하지 못했습니다. A/B 이메일로 기존 메모 소유자를 연결하는 이전 SQL도 적용 여부가 확인되지 않았습니다. DB 자료는 변경·삭제하지 않았습니다.
+
+npm run bundle은 실제 비로그인 API 요청·공개 키만 사용한 직접 Data API 조회·배포 식별·헤더를 점검합니다. authenticated 역할의 직접 Data API 접근은 점수 검증에서 제외하며 실행하지 않습니다. 서버 전용 키를 사용하는 API는 RLS와 별개로 서버 소유자 검사를 유지해야 합니다. 제출 결과는 심판 판정이 아닙니다. 비밀키·JWT·이메일·메모 본문은 제출 묶음에서 제외합니다.
+
+이전 공개 커밋·배포 이력은 남아 있으며 과거 노출을 해소했다고 주장하지 않습니다. 아래 내용은 이전 단계 기록입니다.
+
 # BYTE BACK · 4단계 제작 2（API 소유자 검사）
 
 검증된 사용자 ID와 owner_id를 모든 조회·수정·삭제 쿼리에서 비교합니다. 타인 메모와 없는 메모는 모두 404 JSON 오류로 기본 거부합니다. 추가는 검증된 ID로 소유자를 저장합니다. 수정은 {title,body}만 허용하고 owner_id 등 추가 필드는 400으로 거부합니다. 기존 행은 본인 소유 조건으로 선택하고 새 행의 owner_id도 같은 검증 ID로 고정합니다. URL과 본문의 소유자 값은 신원 근거로 사용하지 않습니다.

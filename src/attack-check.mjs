@@ -15,6 +15,7 @@ export async function runAttackChecks(config) {
       ['anonymous_delete', '/api/notes/11111111-1111-4111-8111-111111111111', '무로그인 삭제 HTTP 401·JSON 오류·자료 없음', 'DELETE'],
       ['invalid_token', '/api/notes', '잘못된 토큰 HTTP 401·JSON 오류·자료 없음', 'GET', true],
     ] : []),
+    ...(config.step >= 4 ? [['anon_data_api', 'https://yptfuysalmiaimmlvfrk.supabase.co/rest/v1/learning_notes?select=id&limit=1', '공개 키만 사용한 직접 Data API 읽기 거부·자료 없음']] : []),
     ['deployment_identity', '/aleph.json', '현재 저장점의 배포 식별 파일'],
     ['security_header', '/', 'X-Content-Type-Options: nosniff'],
   ];
@@ -26,7 +27,7 @@ export async function runAttackChecks(config) {
     if (app) {
       try {
         const response = await fetch(new URL(path, app), { redirect: 'error', signal: AbortSignal.timeout(10000), method,
-          headers: { ...(invalidToken ? { Authorization: 'Bearer invalid' } : {}), ...(['POST', 'PUT'].includes(method) ? { 'Content-Type': 'application/json' } : {}) },
+          headers: { ...(attackId === 'anon_data_api' ? { apikey: 'sb_publishable_lktCZ9Bi1uh8jGnpYQ5qdA_FC8wBG-t' } : {}), ...(invalidToken ? { Authorization: 'Bearer invalid' } : {}), ...(['POST', 'PUT'].includes(method) ? { 'Content-Type': 'application/json' } : {}) },
           ...(['POST', 'PUT'].includes(method) ? { body: JSON.stringify({ title: 'sample', body: 'fictional' }) } : {}),
         });
         if (attackId === 'security_header') observed = 'HTTP ' + response.status + '; nosniff=' + (response.headers.get('x-content-type-options') === 'nosniff');
@@ -34,7 +35,8 @@ export async function runAttackChecks(config) {
           const data = await response.json(); observed = 'HTTP ' + response.status + '; 단계=' + data.step + '; 저장점 일치=' + (data.commit === config.checkCommit);
         } else {
           let data; try { data = await response.json(); } catch {}
-          if (attackId === 'static_notes') observed = 'HTTP ' + response.status + '; 메모 수=' + (Array.isArray(data?.notes) ? data.notes.length : '확인 불가');
+          if (attackId === 'anon_data_api') observed = 'HTTP ' + response.status + '; JSON 오류=' + (typeof data?.message === 'string' || typeof data?.error === 'string') + '; 행 배열 없음=' + (data != null && !Array.isArray(data));
+          else if (attackId === 'static_notes') observed = 'HTTP ' + response.status + '; 메모 수=' + (Array.isArray(data?.notes) ? data.notes.length : '확인 불가');
           else if (config.step >= 3) observed = 'HTTP ' + response.status + '; JSON 오류=' + (typeof data?.error === 'string') + '; 자료 없음=' + (data != null && !Array.isArray(data) && !('notes' in data) && !('body' in data));
           else observed = 'HTTP ' + response.status + '; 메모 수=' + (Array.isArray(data?.notes) ? data.notes.length : '확인 불가');
         }
